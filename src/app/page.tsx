@@ -23,15 +23,7 @@ export default function Home() {
             Welcome to <span className="font-semibold text-blue-500">3D Builder</span> — a platform where creativity meets functionality.
             Build, visualize, and deploy interactive 3D experiences effortlessly.
           </p>
-          <a href="/signup">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-              className="bg-blue-600 text-white px-8 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-300"
-            >
-              Get Started
-            </motion.button>
-          </a>
+          
         </motion.div>
 
         {/* Right Image */}
