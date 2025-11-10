@@ -13,7 +13,7 @@ interface BuilderProps {
   username: string
 }
 
-const furnitureOptions = [
+const furnitureOptions: { type: 'chair' | 'table' | 'sofa'; model_url: string }[] = [
   { type: 'chair', model_url: '/models/chair.png' },
   { type: 'table', model_url: '/models/table.png' },
   { type: 'sofa', model_url: '/models/sofa.png' },
@@ -30,7 +30,6 @@ export default function Builder({ userId, username }: BuilderProps) {
   const [userColor] = useState(`#${Math.floor(Math.random() * 16777215).toString(16)}`)
   const [loadingTextures, setLoadingTextures] = useState(true)
 
-  // ✅ Fetch and subscribe (no async cleanup now)
   useEffect(() => {
     let mounted = true
 
@@ -58,7 +57,6 @@ export default function Builder({ userId, username }: BuilderProps) {
     }
   }, [addObject, updateObject, removeObject])
 
-  // 🪑 Add new furniture
   const handlePlaneClick = async (e: any) => {
     e.stopPropagation()
     const newObj: Object3D = {
@@ -78,7 +76,6 @@ export default function Builder({ userId, username }: BuilderProps) {
     if (error) console.error('Insert error:', error)
   }
 
-  // 🗑️ Delete one
   const handleDelete = async () => {
     if (!selectedId) return
     removeObject(selectedId)
@@ -87,7 +84,6 @@ export default function Builder({ userId, username }: BuilderProps) {
     if (error) console.error('Delete error:', error)
   }
 
-  // ❌ Delete all
   const handleDeleteAll = async () => {
     const confirmDelete = confirm('Are you sure you want to delete ALL furniture? Everyone will see this change!')
     if (!confirmDelete) return
@@ -101,20 +97,15 @@ export default function Builder({ userId, username }: BuilderProps) {
     if (error) console.error('Delete All error:', error)
   }
 
-  // 🪞 Furniture Display
   const FurniturePlane = ({ obj }: { obj: Object3D }) => {
-    const texture = useLoader(
-      THREE.TextureLoader,
-      obj.model_url,
-      undefined,
-      () => setLoadingTextures(false)
-    )
+    const texture = useLoader(THREE.TextureLoader, obj.model_url)
+
     return (
       <group>
         <mesh
           position={obj.position}
           rotation={obj.rotation}
-          scale={obj.scale}
+          scale={[obj.scale, obj.scale, obj.scale]}
           onClick={(e) => {
             e.stopPropagation()
             setSelectedId(obj.id)
@@ -124,7 +115,6 @@ export default function Builder({ userId, username }: BuilderProps) {
           <meshBasicMaterial map={texture} transparent />
         </mesh>
 
-        {/* username bubble */}
         <mesh position={[obj.position[0], obj.position[1] + 1.2, obj.position[2]]}>
           <planeGeometry args={[0.5, 0.2]} />
           <meshBasicMaterial color={obj.color || 'gray'} />
@@ -141,14 +131,11 @@ export default function Builder({ userId, username }: BuilderProps) {
         </div>
       )}
 
-      {/* Controls */}
       <div className="absolute top-4 left-4 z-50 flex gap-2">
         {furnitureOptions.map((f) => (
           <button
             key={f.type}
-            className={`px-3 py-1 rounded ${
-              selectedFurniture.type === f.type ? 'bg-blue-500 text-white' : 'bg-gray-200'
-            }`}
+            className={`px-3 py-1 rounded ${selectedFurniture.type === f.type ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
             onClick={() => setSelectedFurniture(f)}
           >
             {f.type}
@@ -189,19 +176,19 @@ export default function Builder({ userId, username }: BuilderProps) {
 
         <gridHelper args={[100, 100, 'gray', 'lightgray']} />
 
-        {objects.map((obj: any) => (
+        {objects.map((obj: Object3D) => (
           <TransformControls
             key={obj.id}
             mode="translate"
             enabled={selectedId === obj.id}
-            onMouseDown={(e) => e.stopPropagation()}
-            onObjectChange={(e) => {
+            onMouseDown={(e: any) => e.stopPropagation()}
+            onObjectChange={(e: any) => {
               const mesh = e.target.object
               if (mesh) {
-                const newObj = {
+                const newObj: Object3D = {
                   ...obj,
-                  position: [mesh.position.x, mesh.position.y, mesh.position.z],
-                  rotation: [mesh.rotation.x, mesh.rotation.y, mesh.rotation.z],
+                  position: [mesh.position.x, mesh.position.y, mesh.position.z] as [number, number, number],
+                  rotation: [mesh.rotation.x, mesh.rotation.y, mesh.rotation.z] as [number, number, number],
                 }
                 updateObject(obj.id, newObj)
                 supabase
@@ -210,6 +197,7 @@ export default function Builder({ userId, username }: BuilderProps) {
                   .eq('id', obj.id)
               }
             }}
+
           >
             <FurniturePlane obj={obj} />
           </TransformControls>

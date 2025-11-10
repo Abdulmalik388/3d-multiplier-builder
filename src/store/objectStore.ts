@@ -1,14 +1,17 @@
 import { create } from 'zustand'
 
-export type Object3D = {
+export interface Object3D {
   id: string
-  type: 'cube' | 'sphere'
+  type:  'chair' | 'table' | 'sofa'
+  model_url: string
   position: [number, number, number]
   rotation: [number, number, number]
   scale: number
   color: string
   user_id: string
+  username: string
 }
+
 
 type ObjectState = {
   objects: Object3D[]
