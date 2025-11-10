@@ -11,7 +11,7 @@ export default function DashboardPage() {
 
       {/* 3D Builder Canvas */}
       <div className="flex-1">
-        <Builder />
+        <Builder userId="user-id" username="username" />
         
   
 
