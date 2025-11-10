@@ -28,16 +28,19 @@ export default function Builder({ userId, username }: BuilderProps) {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedFurniture, setSelectedFurniture] = useState(furnitureOptions[0])
   const [userColor] = useState(`#${Math.floor(Math.random() * 16777215).toString(16)}`)
-  const [loadingTextures, setLoadingTextures] = useState(true) // ✅ spinner state
+  const [loadingTextures, setLoadingTextures] = useState(true)
 
-  // 🔄 Fetch and subscribe to realtime updates
+  // ✅ Fetch and subscribe (no async cleanup now)
   useEffect(() => {
+    let mounted = true
+
     const fetchObjects = async () => {
       const { data, error } = await supabase.from('furniture_objects').select('*')
       if (error) console.error('Fetch error:', error)
-      if (data) useObjectStore.setState({ objects: data })
-      setLoadingTextures(false) // ✅ hide spinner after initial fetch
+      if (data && mounted) useObjectStore.setState({ objects: data })
+      setLoadingTextures(false)
     }
+
     fetchObjects()
 
     const channel = supabase
@@ -49,8 +52,11 @@ export default function Builder({ userId, username }: BuilderProps) {
       })
       .subscribe()
 
-    return () => supabase.removeChannel(channel)
-  }, [])
+    return () => {
+      mounted = false
+      supabase.removeChannel(channel)
+    }
+  }, [addObject, updateObject, removeObject])
 
   // 🪑 Add new furniture
   const handlePlaneClick = async (e: any) => {
@@ -72,7 +78,7 @@ export default function Builder({ userId, username }: BuilderProps) {
     if (error) console.error('Insert error:', error)
   }
 
-  // 🗑️ Delete single selected furniture
+  // 🗑️ Delete one
   const handleDelete = async () => {
     if (!selectedId) return
     removeObject(selectedId)
@@ -81,29 +87,27 @@ export default function Builder({ userId, username }: BuilderProps) {
     if (error) console.error('Delete error:', error)
   }
 
-  // ❌ Delete all furniture (global)
+  // ❌ Delete all
   const handleDeleteAll = async () => {
-    const confirmDelete = confirm('Are you sure you want to delete ALL furniture? Everyone will see the change!')
+    const confirmDelete = confirm('Are you sure you want to delete ALL furniture? Everyone will see this change!')
     if (!confirmDelete) return
 
     useObjectStore.setState({ objects: [] })
-
     const { error } = await supabase
       .from('furniture_objects')
       .delete()
       .gt('created_at', '1970-01-01T00:00:00Z')
 
     if (error) console.error('Delete All error:', error)
-    else console.log('✅ All furniture deleted globally')
   }
 
-  // 🪞Furniture display component
+  // 🪞 Furniture Display
   const FurniturePlane = ({ obj }: { obj: Object3D }) => {
     const texture = useLoader(
       THREE.TextureLoader,
       obj.model_url,
       undefined,
-      () => setLoadingTextures(false) // ✅ hide spinner when texture loads
+      () => setLoadingTextures(false)
     )
     return (
       <group>
@@ -120,6 +124,7 @@ export default function Builder({ userId, username }: BuilderProps) {
           <meshBasicMaterial map={texture} transparent />
         </mesh>
 
+        {/* username bubble */}
         <mesh position={[obj.position[0], obj.position[1] + 1.2, obj.position[2]]}>
           <planeGeometry args={[0.5, 0.2]} />
           <meshBasicMaterial color={obj.color || 'gray'} />
@@ -130,14 +135,13 @@ export default function Builder({ userId, username }: BuilderProps) {
 
   return (
     <div className="relative h-full w-full">
-      {/* Loading Spinner */}
       {loadingTextures && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-50">
           <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 
-      {/* Top left controls */}
+      {/* Controls */}
       <div className="absolute top-4 left-4 z-50 flex gap-2">
         {furnitureOptions.map((f) => (
           <button
@@ -159,7 +163,6 @@ export default function Builder({ userId, username }: BuilderProps) {
         </button>
       </div>
 
-      {/* Delete single button */}
       {selectedId && (
         <button
           onClick={handleDelete}
